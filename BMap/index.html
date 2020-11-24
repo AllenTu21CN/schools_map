@@ -1,0 +1,279 @@
+﻿<!--
+ * @Descripttion: 
+ * @version: 
+ * @Author: Caoshuangna
+ * @Date: 2020-08-10 17:06:09
+ * @LastEditors: Caoshuangna
+ * @LastEditTime: 2020-09-16 10:56:56
+-->
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta name="viewport" content="initial-scale=1.0, user-scalable=no" />
+  <style type="text/css">
+    body,
+    html {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      font-family: "微软雅黑";
+      overflow: hidden;
+    }
+
+    #allmap {
+      width: 100%;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    #result {
+      width: 100%;
+      font-size: 12px;
+    }
+
+    dl,
+    dt,
+    dd,
+    ul,
+    li {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    p {
+      font-size: 12px;
+    }
+
+    dt {
+      font-size: 14px;
+      font-family: "微软雅黑";
+      font-weight: bold;
+      border-bottom: 1px dotted #000;
+      padding: 5px 0 5px 5px;
+      margin: 5px 0;
+    }
+
+    dd {
+      padding: 5px 0 0 5px;
+    }
+
+    li {
+      line-height: 28px;
+    }
+    strong{
+      font-size: 12px;
+    }
+  </style>
+  <script type="text/javascript" src="http://api.map.baidu.com/api?v=2.0&ak=WPOQci8ySGioCEGt2zMtgjrLofr937E7"></script>
+  <!--加载鼠标绘制工具-->
+  <script type="text/javascript" src="plugin/DrawingManager/DrawingManager.min.js"></script>
+  <link rel="stylesheet" href="plugin/DrawingManager/DrawingManager.min.css" />
+  <title>鼠标绘制工具</title>
+</head>
+
+<body>
+  <div style='width:80vw;display: inline-block;'>
+    <div id="allmap" style="overflow:hidden;zoom:1;position:relative;">
+      <div id="map" style="height:100%;-webkit-transition: all 0.5s ease-in-out;transition: all 0.5s ease-in-out;">
+      </div>
+    </div>
+
+  </div>
+  <div style='width: 19.5vw;
+  display: inline-block;
+  vertical-align: top;
+  overflow: auto;
+  height: inherit;'>
+
+    <div id="result">
+      <!-- <input type="button" value="获取绘制的覆盖物个数" onclick="alert(overlays.length)" /> -->
+      <input type="button" value="清除所有覆盖物" onclick="clearAll()" />
+    </div>
+    <div>
+      <p style="font-size: 16px; font-weight: 900">☆ 获取区域经纬度坐标</p>
+      <p>说明：单击地图右上角‘画多边形’按钮，单击地图上任一点开始，拖动红色区域覆盖地图，双击结束画图。</p>
+    </div>
+
+    <p>区域坐标
+      <button onclick="download('area.txt', document.getElementById('geostring').innerHTML)">下载</button>
+      <button onclick="copyToClipboard(document.getElementById('geostring').innerHTML)">复制</button>
+    </p>
+    <p id='geostring' style="border: 1px solid #ddd;
+    border-radius: 5px;
+    padding: 10px;
+    text-align: center;
+    font-size: 14px;">
+    </p>
+
+    <div style="display:none">
+      <p>区域坐标(Json格式)
+        <button onclick="download('area.json', document.getElementById('geojson').innerHTML)">下载</button>
+        <button onclick="copyToClipboard(document.getElementById('geojson').innerHTML)">复制</button>
+      </p>
+      <p id='geojson' style="border: 1px solid #ddd;
+      border-radius: 5px;
+      padding: 10px;
+      text-align: center;
+      font-size: 14px;">
+      </p>
+    </div>
+    
+    <br><hr>
+
+    <div>
+      <p style="font-size: 16px; font-weight: 900">☆ 获取坐标点经纬度</p>
+      <p>说明：单击地图右上角‘画点’按钮，单击地图上任一点。下方区域显示所点区域经纬度</p>
+    </div>
+
+    <p>点坐标
+      <button onclick="download('point.txt', document.getElementById('out_pre2').innerHTML)">下载</button>
+      <button onclick="copyToClipboard(document.getElementById('out_pre2').innerHTML)">复制</button>
+    </p>
+    <p id='out_pre2' style="border: 1px solid #ddd;
+    border-radius: 5px;
+    padding: 10px 0;
+    text-align: center;
+    font-size: 14px;">
+    </p>
+
+    <div style="display:none">
+      <p>点坐标(Json格式)
+        <button onclick="download('point.json', document.getElementById('out_pre').innerHTML)">下载</button>
+        <button onclick="copyToClipboard(document.getElementById('out_pre').innerHTML)">复制</button>
+      </p>
+      <p id='out_pre' style="border: 1px solid #ddd;
+      border-radius: 5px;
+      padding: 10px 0;
+      text-align: center;
+      font-size: 14px;">
+      </p>
+    </div>
+
+  </div>
+  <script type="text/javascript">
+    // 百度地图API功能
+    var map = new BMap.Map('map');
+    // 初始化地点为南京新街口
+    var poi = new BMap.Point(118.79062, 32.047866); 
+    map.centerAndZoom(poi, 16);
+    map.enableScrollWheelZoom();
+    var overlays = [];
+    var geojson = [];
+    var overlaycomplete = function (e) {
+      overlays.push(e.overlay);
+      if (typeof e.overlay.getPath === "function") {
+        e.overlay.getPath().map(_ => {
+          var a = [];
+          Object.entries(_).forEach(([key, val]) => {
+            a.push(val)
+          })
+          geojson.push(a)
+        })
+        var json = JSON.stringify(geojson)
+        document.getElementById("geojson").innerHTML = json
+        document.getElementById("geostring").innerHTML = json.replace(/\],\[/g, ";").replace(/[\[\]]/g, "")
+      }
+      if (e.overlay.point && e.overlay.point instanceof Object) {
+        // document.getElementById("out_pre").innerHTML = JSON.stringify(e.overlay.point)
+        document.getElementById("out_pre").innerHTML = `{lng: ${JSON.stringify(e.overlay.point.lng)}, lat: ${JSON.stringify(e.overlay.point.lat)}}`
+        document.getElementById("out_pre2").innerHTML = `${JSON.stringify(e.overlay.point.lng)}, ${JSON.stringify(e.overlay.point.lat)}`
+      }
+    };
+    var styleOptions = {
+      strokeColor: "red",    //边线颜色。
+      fillColor: "red",      //填充颜色。当参数为空时，圆形将没有填充效果。
+      strokeWeight: 2,       //边线的宽度，以像素为单位。
+      strokeOpacity: 0.8,	   //边线透明度，取值范围0 - 1。
+      fillOpacity: 0.5,      //填充的透明度，取值范围0 - 1。
+      strokeStyle: 'dashed' //边线的样式，solid或dashed。
+    }
+    //实例化鼠标绘制工具
+    var drawingManager = new BMapLib.DrawingManager(map, {
+      isOpen: false, //是否开启绘制模式
+      enableDrawingTool: true, //是否显示工具栏
+      drawingToolOptions: {
+        anchor: BMAP_ANCHOR_TOP_RIGHT, //位置
+        offset: new BMap.Size(5, 5), //偏离值
+        drawingModes: [
+          BMAP_DRAWING_MARKER,
+          // BMAP_DRAWING_POLYLINE,
+          BMAP_DRAWING_POLYGON,
+        ]
+      },
+      polylineOptions: styleOptions, //线的样式
+      polygonOptions: styleOptions, //多边形的样式
+    });
+    //添加鼠标绘制工具监听事件，用于获取绘制结果
+    drawingManager.addEventListener('overlaycomplete', overlaycomplete);
+    function clearAll() {
+      for (var i = 0; i < overlays.length; i++) {
+        map.removeOverlay(overlays[i]);
+      }
+      overlays.length = 0
+    }
+
+
+    function download(filename, text) {
+      if (!filename) {
+        filename = 'geo.json';
+      }
+      if (!text) {
+        text = JSON.stringify(geojson);
+      }
+
+      var element = document.createElement('a');
+      element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
+      element.setAttribute('download', filename);
+
+      element.style.display = 'none';
+      document.body.appendChild(element);
+
+      element.click();
+
+      document.body.removeChild(element);
+    }
+
+    function copyToClipboard(s) {
+      if (window.clipboardData) {
+          window.clipboardData.setData('text', s);
+      } else {
+          (function(s) {
+              document.oncopy = function(e) {
+                  e.clipboardData.setData('text', s);
+                  e.preventDefault();
+                  document.oncopy = null;
+              }
+          })(s);
+          document.execCommand('Copy');
+      }
+    }
+
+    // var coordinates = [[120.377482, 36.190974], [120.378129, 36.186692], [120.377302, 36.180341], [120.384596, 36.179351], [120.38474, 36.17938], [120.385135, 36.179817], [120.386034, 36.181099], [120.391172, 36.180574], [120.391747, 36.179846], [120.393328, 36.179089], [120.396706, 36.178448], [120.399472, 36.178156], [120.399077, 36.175389], [120.404525, 36.173521], [120.40484, 36.173317], [120.406448, 36.174183], [120.407741, 36.174781], [120.408568, 36.175057], [120.408693, 36.174358], [120.408639, 36.17328], [120.408639, 36.172836], [120.409511, 36.172654], [120.410256, 36.172377], [120.411981, 36.172042], [120.413275, 36.171969], [120.414389, 36.171882], [120.41455, 36.171882], [120.414604, 36.17178], [120.416347, 36.171896], [120.417623, 36.172158], [120.417874, 36.172173], [120.41791, 36.172231], [120.418359, 36.172348], [120.418036, 36.174212], [120.418072, 36.174329], [120.418503, 36.17414], [120.418593, 36.174081], [120.418341, 36.176427], [120.416545, 36.175873], [120.41614, 36.17844], [120.418063, 36.178717], [120.417739, 36.181878], [120.413913, 36.181427], [120.411649, 36.186728], [120.410212, 36.189947], [120.409834, 36.191141], [120.40908, 36.190948], [120.408684, 36.190774], [120.406888, 36.188982], [120.40484, 36.189375], [120.403151, 36.189361], [120.402037, 36.189288], [120.400797, 36.18923], [120.399342, 36.189099], [120.397887, 36.189026], [120.397195, 36.188964], [120.395425, 36.188563], [120.394644, 36.188316], [120.394312, 36.188097], [120.393934, 36.187442], [120.393692, 36.187223], [120.393323, 36.187107], [120.392722, 36.187049], [120.392183, 36.187049], [120.391706, 36.187063], [120.39053, 36.18683], [120.390467, 36.18683], [120.390184, 36.186808], [120.389429, 36.188731], [120.388962, 36.189517], [120.388387, 36.190275], [120.387309, 36.191789], [120.386878, 36.19243], [120.386627, 36.193435], [120.386591, 36.194382], [120.385872, 36.193916], [120.38474, 36.193435], [120.383213, 36.192678], [120.381686, 36.19195], [120.380446, 36.191644], [120.378991, 36.191396], [120.377715, 36.191119], [120.377428, 36.19109]]
+    // //  var coordinates = geojson
+    // getBoundary2(map, '李沧区');
+    // function getBoundary2(map, city) {
+    //   var bdary = new BMap.Boundary();
+    //   bdary.get(city, function (rs) {//获取行政区域
+    //     //map.clearOverlays();//清除地图覆盖物
+    //     //思路：利用行政区划点的集合与外围自定义东南西北形成一个环形遮罩层
+    //     //1.获取选中行政区划边框点的集合rs.boundaries[0]
+    //     var strs = new Array();
+    //     strs = rs.boundaries[0].split(";");
+    //     var ENWS = "";
+    //     for (var i = 0; i < coordinates.length; i++) {
+    //       ENWS += coordinates[i] + ";"
+    //     }
+    //     //3.添加环形遮罩层
+    //     var ply1 = new BMap.Polygon(ENWS, { strokeWeight: 1, strokeColor: "#114bf3", fillColor: "" }); //建立多边形覆盖物
+    //     map.addOverlay(ply1);//遮罩物是半透明的，如果需要纯色可以多添加几层
+    //     //调整视野120.398169, lat: 36.18397
+    //     map.centerAndZoom(new BMap.Point(120.398169, 36.18397), 15);
+    //   });
+    // }
+  </script>
+</body>
+
+</html>
