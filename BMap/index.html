@@ -99,10 +99,10 @@
     </div>
 
     <p>区域坐标
-      <button onclick="download('area.txt', document.getElementById('geostring').innerHTML)">下载</button>
-      <button onclick="copyToClipboard(document.getElementById('geostring').innerHTML)">复制</button>
+      <button onclick="download('area.txt', document.getElementById('area_list').innerHTML)">下载</button>
+      <button onclick="copyToClipboard(document.getElementById('area_list').innerHTML)">复制</button>
     </p>
-    <p id='geostring' style="border: 1px solid #ddd;
+    <p id='area_list' style="border: 1px solid #ddd;
     border-radius: 5px;
     padding: 10px;
     text-align: center;
@@ -111,10 +111,10 @@
 
     <div style="display:none">
       <p>区域坐标(Json格式)
-        <button onclick="download('area.json', document.getElementById('geojson').innerHTML)">下载</button>
-        <button onclick="copyToClipboard(document.getElementById('geojson').innerHTML)">复制</button>
+        <button onclick="download('area.json', document.getElementById('area_json').innerHTML)">下载</button>
+        <button onclick="copyToClipboard(document.getElementById('area_json').innerHTML)">复制</button>
       </p>
-      <p id='geojson' style="border: 1px solid #ddd;
+      <p id='area_json' style="border: 1px solid #ddd;
       border-radius: 5px;
       padding: 10px;
       text-align: center;
@@ -130,10 +130,10 @@
     </div>
 
     <p>点坐标
-      <button onclick="download('point.txt', document.getElementById('out_pre2').innerHTML)">下载</button>
-      <button onclick="copyToClipboard(document.getElementById('out_pre2').innerHTML)">复制</button>
+      <button onclick="download('point.txt', document.getElementById('point_list').innerHTML)">下载</button>
+      <button onclick="copyToClipboard(document.getElementById('point_list').innerHTML)">复制</button>
     </p>
-    <p id='out_pre2' style="border: 1px solid #ddd;
+    <p id='point_list' style="border: 1px solid #ddd;
     border-radius: 5px;
     padding: 10px 0;
     text-align: center;
@@ -142,10 +142,10 @@
 
     <div style="display:none">
       <p>点坐标(Json格式)
-        <button onclick="download('point.json', document.getElementById('out_pre').innerHTML)">下载</button>
-        <button onclick="copyToClipboard(document.getElementById('out_pre').innerHTML)">复制</button>
+        <button onclick="download('point.json', document.getElementById('point_json').innerHTML)">下载</button>
+        <button onclick="copyToClipboard(document.getElementById('point_json').innerHTML)">复制</button>
       </p>
-      <p id='out_pre' style="border: 1px solid #ddd;
+      <p id='point_json' style="border: 1px solid #ddd;
       border-radius: 5px;
       padding: 10px 0;
       text-align: center;
@@ -162,25 +162,32 @@
     map.centerAndZoom(poi, 16);
     map.enableScrollWheelZoom();
     var overlays = [];
-    var geojson = [];
+    var areas = [];
     var overlaycomplete = function (e) {
       overlays.push(e.overlay);
       if (typeof e.overlay.getPath === "function") {
+        var area = [];
         e.overlay.getPath().map(_ => {
-          var a = [];
+          var point = [];
           Object.entries(_).forEach(([key, val]) => {
-            a.push(val)
+            point.push(val)
           })
-          geojson.push(a)
+          area.push(point)
         })
-        var json = JSON.stringify(geojson)
-        document.getElementById("geojson").innerHTML = json
-        document.getElementById("geostring").innerHTML = json.replace(/\],\[/g, ";").replace(/[\[\]]/g, "")
+        areas.push(area)
+        document.getElementById("area_json").innerHTML = JSON.stringify(areas)
+
+        var areaStrs = []
+        areas.forEach(area => {
+            var str = JSON.stringify(area).replace(/\],\[/g, ";").replace(/[\[\]]/g, "")
+            areaStrs.push(str)
+        })
+        document.getElementById("area_list").innerHTML = JSON.stringify(areaStrs)
       }
       if (e.overlay.point && e.overlay.point instanceof Object) {
-        // document.getElementById("out_pre").innerHTML = JSON.stringify(e.overlay.point)
-        document.getElementById("out_pre").innerHTML = `{lng: ${JSON.stringify(e.overlay.point.lng)}, lat: ${JSON.stringify(e.overlay.point.lat)}}`
-        document.getElementById("out_pre2").innerHTML = `${JSON.stringify(e.overlay.point.lng)}, ${JSON.stringify(e.overlay.point.lat)}`
+        // document.getElementById("point_json").innerHTML = JSON.stringify(e.overlay.point)
+        document.getElementById("point_json").innerHTML = `{lng: ${JSON.stringify(e.overlay.point.lng)}, lat: ${JSON.stringify(e.overlay.point.lat)}}`
+        document.getElementById("point_list").innerHTML = `${JSON.stringify(e.overlay.point.lng)}, ${JSON.stringify(e.overlay.point.lat)}`
       }
     };
     var styleOptions = {
@@ -214,15 +221,15 @@
         map.removeOverlay(overlays[i]);
       }
       overlays.length = 0
+      areas.length = 0
     }
-
 
     function download(filename, text) {
       if (!filename) {
         filename = 'geo.json';
       }
       if (!text) {
-        text = JSON.stringify(geojson);
+        text = JSON.stringify(areas);
       }
 
       var element = document.createElement('a');
