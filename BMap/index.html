@@ -63,21 +63,28 @@
     li {
       line-height: 28px;
     }
-    strong{
+
+    strong {
       font-size: 12px;
+    }
+
+    .table-txt {
+      font-size: 12px
     }
   </style>
   <script type="text/javascript" src="http://api.map.baidu.com/api?v=2.0&ak=WPOQci8ySGioCEGt2zMtgjrLofr937E7"></script>
   <!--加载鼠标绘制工具-->
   <script type="text/javascript" src="plugin/DrawingManager/DrawingManager.min.js"></script>
+  <script type="text/javascript" src="plugin/jquery.min.js"></script>
+  <script type="text/javascript" src="plugin/layer/layer.js"></script>
   <link rel="stylesheet" href="plugin/DrawingManager/DrawingManager.min.css" />
-  <title>学区绘制</title>
+  <title>地图标记</title>
 </head>
 
 <body>
   <div style='width:80vw;display: inline-block;'>
     <div id="allmap" style="overflow:hidden;zoom:1;position:relative;">
-      <div id="map" style="height:100%;-webkit-transition: all 0.5s ease-in-out;transition: all 0.5s ease-in-out;">
+      <div id="divMap" style="height:100%;-webkit-transition: all 0.5s ease-in-out;transition: all 0.5s ease-in-out;">
       </div>
     </div>
 
@@ -88,11 +95,16 @@
   overflow: auto;
   height: inherit;'>
 
+    <br>
     <div id="result">
       <!-- <input type="button" value="获取绘制的覆盖物个数" onclick="alert(overlays.length)" /> -->
-      <input type="button" value="清除所有覆盖物" onclick="clearAll()" />
-      <a href="../SMap" target="_blank">学区查看</a>
+      <input type="button" value="清除所有标记" onclick="clearAll()" />
+      <a href="../SMap/index.html" target="_blank">地图查看</a>
     </div>
+
+    <br>
+    <hr>
+
     <div>
       <p style="font-size: 16px; font-weight: 900">☆ 获取区域经纬度坐标</p>
       <p>说明：单击地图右上角‘画多边形’按钮，单击地图上任一点开始，拖动红色区域覆盖地图，双击结束画图。</p>
@@ -121,8 +133,9 @@
       font-size: 14px;">
       </p>
     </div>
-    
-    <br><hr>
+
+    <br>
+    <hr>
 
     <div>
       <p style="font-size: 16px; font-weight: 900">☆ 获取坐标点经纬度</p>
@@ -153,14 +166,39 @@
       </p>
     </div>
 
+    <br>
+    <hr>
+
+    <p>
+      <input id="txtCity" type="text" value="常州市" placeholder="城市" size=5 />
+      <input id="txtSearch" type="text" value="省常中" placeholder="地名" size=30 />
+      <input type="button" value="搜索" onclick="searchTxt()" /><br><br>
+    <table border="1" id="txtResult" class='table-txt'>
+      <tr>
+        <th>编号</th>
+        <th>名称</th>
+        <th>地址</th>
+        <th style="display:none;">坐标</th>
+        <th style="display:none;">显示</th>
+      </tr>
+    </table>
+    </p>
+
   </div>
+
   <script type="text/javascript">
     // 百度地图API功能
-    var map = new BMap.Map('map');
-    // 初始化地点为南京新街口
-    var poi = new BMap.Point(118.79062, 32.047866); 
+    var map = new BMap.Map('divMap');
+    // 初始化地点
+    // 南京新街口
+    // var poi = new BMap.Point(118.79062, 32.047866);
     // 大丰
     // var poi = new BMap.Point(120.468116, 33.206431); 
+    // 常州省常中
+    var poi = new BMap.Point(119.973553, 31.783225);
+
+    var search = new BMap.LocalSearch(map, { renderOptions: { map: map, autoViewport: true, selectFirstResult: true } });
+
     map.centerAndZoom(poi, 16);
     map.enableScrollWheelZoom();
     var overlays = [];
@@ -181,8 +219,8 @@
 
         var areaStrs = []
         areas.forEach(area => {
-            var str = JSON.stringify(area).replace(/\],\[/g, ";").replace(/[\[\]]/g, "")
-            areaStrs.push(str)
+          var str = JSON.stringify(area).replace(/\],\[/g, ";").replace(/[\[\]]/g, "")
+          areaStrs.push(str)
         })
         document.getElementById("area_list").innerHTML = JSON.stringify(areaStrs)
       }
@@ -218,6 +256,11 @@
     });
     //添加鼠标绘制工具监听事件，用于获取绘制结果
     drawingManager.addEventListener('overlaycomplete', overlaycomplete);
+
+    function $(id) {
+      return document.getElementById(id);//定义$,以便调用  
+    }
+
     function clearAll() {
       for (var i = 0; i < overlays.length; i++) {
         map.removeOverlay(overlays[i]);
@@ -248,17 +291,77 @@
 
     function copyToClipboard(s) {
       if (window.clipboardData) {
-          window.clipboardData.setData('text', s);
+        window.clipboardData.setData('text', s);
       } else {
-          (function(s) {
-              document.oncopy = function(e) {
-                  e.clipboardData.setData('text', s);
-                  e.preventDefault();
-                  document.oncopy = null;
-              }
-          })(s);
-          document.execCommand('Copy');
+        (function (s) {
+          document.oncopy = function (e) {
+            e.clipboardData.setData('text', s);
+            e.preventDefault();
+            document.oncopy = null;
+          }
+        })(s);
+        document.execCommand('Copy');
       }
+    }
+
+    function searchTxt() {
+      search.clearResults();
+      clearTable($('txtResult'), true); //每次生成前清空结果
+      // clearAll(); //清除地图上所有标记  
+
+      var address = $("txtCity").value + ' ' + $("txtSearch").value;
+      search.search(address);
+
+      var i = 1;
+      var count = 0;
+      var max = 5;
+      var no = 'A'.charCodeAt()
+      search.setSearchCompleteCallback(function (rs) {
+        if (search.getStatus() == BMAP_STATUS_SUCCESS && count < max) {
+          for (j = 0; j < rs.getCurrentNumPois(); j++) {
+            var poi = rs.getPoi(j);
+
+            // map.addOverlay(new BMap.Marker(poi.point)); //如果查询到，则添加红色marker  
+
+            var row = $("txtResult").insertRow();
+            cell1 = row.insertCell();
+            cell2 = row.insertCell();
+            cell3 = row.insertCell();
+            cell4 = row.insertCell();
+            cell5 = row.insertCell();
+            cell1.innerHTML = String.fromCharCode(no + count);
+            cell2.innerHTML = poi.title;
+            cell3.innerHTML = poi.address;
+            cell4.innerHTML = poi.point.lng + "," + poi.point.lat;
+            cell5.innerHTML = 0;
+            cell4.style.display = 'none';
+            cell5.style.display = 'none';
+            row.ondblclick = copyCoord;
+
+            ++count;
+            if (count >= max) {
+              break;
+            }
+          }
+
+          if (count < max && rs.getPageIndex != rs.getNumPages()) {
+            search.gotoPage(i);
+            i = i + 1;
+          }
+        }
+      });
+    }
+
+    function clearTable(table, hasHead) {
+      var offset = hasHead ? 1 : 0;
+      while (table.rows.length > offset) {
+          table.deleteRow(offset);
+      }
+    }
+
+    function copyCoord() {
+      copyToClipboard(this.cells[3].innerHTML);
+      layer.msg("已复制到粘贴板: " + this.cells[1].innerHTML);
     }
 
     // var coordinates = [[120.377482, 36.190974], [120.378129, 36.186692], [120.377302, 36.180341], [120.384596, 36.179351], [120.38474, 36.17938], [120.385135, 36.179817], [120.386034, 36.181099], [120.391172, 36.180574], [120.391747, 36.179846], [120.393328, 36.179089], [120.396706, 36.178448], [120.399472, 36.178156], [120.399077, 36.175389], [120.404525, 36.173521], [120.40484, 36.173317], [120.406448, 36.174183], [120.407741, 36.174781], [120.408568, 36.175057], [120.408693, 36.174358], [120.408639, 36.17328], [120.408639, 36.172836], [120.409511, 36.172654], [120.410256, 36.172377], [120.411981, 36.172042], [120.413275, 36.171969], [120.414389, 36.171882], [120.41455, 36.171882], [120.414604, 36.17178], [120.416347, 36.171896], [120.417623, 36.172158], [120.417874, 36.172173], [120.41791, 36.172231], [120.418359, 36.172348], [120.418036, 36.174212], [120.418072, 36.174329], [120.418503, 36.17414], [120.418593, 36.174081], [120.418341, 36.176427], [120.416545, 36.175873], [120.41614, 36.17844], [120.418063, 36.178717], [120.417739, 36.181878], [120.413913, 36.181427], [120.411649, 36.186728], [120.410212, 36.189947], [120.409834, 36.191141], [120.40908, 36.190948], [120.408684, 36.190774], [120.406888, 36.188982], [120.40484, 36.189375], [120.403151, 36.189361], [120.402037, 36.189288], [120.400797, 36.18923], [120.399342, 36.189099], [120.397887, 36.189026], [120.397195, 36.188964], [120.395425, 36.188563], [120.394644, 36.188316], [120.394312, 36.188097], [120.393934, 36.187442], [120.393692, 36.187223], [120.393323, 36.187107], [120.392722, 36.187049], [120.392183, 36.187049], [120.391706, 36.187063], [120.39053, 36.18683], [120.390467, 36.18683], [120.390184, 36.186808], [120.389429, 36.188731], [120.388962, 36.189517], [120.388387, 36.190275], [120.387309, 36.191789], [120.386878, 36.19243], [120.386627, 36.193435], [120.386591, 36.194382], [120.385872, 36.193916], [120.38474, 36.193435], [120.383213, 36.192678], [120.381686, 36.19195], [120.380446, 36.191644], [120.378991, 36.191396], [120.377715, 36.191119], [120.377428, 36.19109]]
