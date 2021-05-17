@@ -1,0 +1,180 @@
+﻿<!DOCTYPE html>
+<html>
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta name="viewport" content="initial-scale=1.0, user-scalable=no" />
+  <style type="text/css">
+    body,
+    html {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      font-family: "微软雅黑";
+      overflow: hidden;
+    }
+
+    #allmap {
+      width: 100%;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    #result {
+      width: 100%;
+      font-size: 12px;
+    }
+
+    dl,
+    dt,
+    dd,
+    ul,
+    li {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    p {
+      font-size: 12px;
+    }
+
+    dt {
+      font-size: 14px;
+      font-family: "微软雅黑";
+      font-weight: bold;
+      border-bottom: 1px dotted #000;
+      padding: 5px 0 5px 5px;
+      margin: 5px 0;
+    }
+
+    dd {
+      padding: 5px 0 0 5px;
+    }
+
+    li {
+      line-height: 28px;
+    }
+
+    strong {
+      font-size: 12px;
+    }
+
+    .table-txt {
+      font-size: 12px
+    }
+  </style>
+  <script type="text/javascript" src="http://api.map.baidu.com/api?v=2.0&ak=WPOQci8ySGioCEGt2zMtgjrLofr937E7"></script>
+  <script type="text/javascript" src="plugin/jquery.min.js"></script>
+  <script type="text/javascript" src="plugin/layer/layer.js"></script>
+  <script type="text/javascript" src="数据/data.js"></script>
+  <title>金茂周边3km分众3.23</title>
+</head>
+
+<body>
+  <div style='width:80vw;display: inline-block;'>
+    <div id="allmap" style="overflow:hidden;zoom:1;position:relative;">
+      <div id="divMap" style="height:100%;-webkit-transition: all 0.5s ease-in-out;transition: all 0.5s ease-in-out;">
+      </div>
+    </div>
+  </div>
+
+  <div style='width: 19.5vw; display: inline-block; vertical-align: top;
+  overflow: auto; height: inherit;'>
+    <p>
+      <textarea id="txtResult" rows="55" cols="80" value=""></textarea>
+    </p>
+  </div>
+
+  <script type="text/javascript">
+    // 百度地图API功能
+    var map = new BMap.Map('divMap');
+    // 初始化地点为南京新街口
+    var poi = new BMap.Point(118.79062, 32.047866);
+    var search = new BMap.LocalSearch(map, { renderOptions: { map: map, autoViewport: true, selectFirstResult: true } });
+
+    map.centerAndZoom(poi, 16);
+    map.enableScrollWheelZoom();
+    
+    var groupIdx = 0;
+    var itemIdx = 0;
+    var group = null;
+    var coords = null;
+    var coordsList = [];
+
+    preProcessNextData();
+
+    function $(id) {
+      return document.getElementById(id);//定义$,以便调用  
+    }
+
+    function preProcessNextData() {
+      if (groupIdx >= g_items.length) {
+        return;
+      }
+      var group = g_items[groupIdx]
+      if (itemIdx >= group.length) {
+        return;
+      }
+
+      var coordGroup = []
+      coordsList[groupIdx] = coordGroup
+
+      for (groupIdx = 0; groupIdx < g_items.length; groupIdx++) {
+
+        
+        for (itemIdx = 0; itemIdx < group.length; itemIdx++) {
+          var item = group[itemIdx]
+
+          var row = $("txtResult").insertRow();
+          cell1 = row.insertCell();
+          cell2 = row.insertCell();
+          cell1.innerHTML = item.项目名称;
+          cell2.style.display = 'none';
+        }
+      }
+    }
+
+    function preProcessData() {
+      if (!group || itemIdx >= group.length || !coords) {
+        preProcessNextData();
+        return;
+      }
+
+      var item = group[itemIdx]
+      var address = "南京市 " + item.项目名称 + " " + item.项目地址;
+
+      search.clearResults();
+      search.setSearchCompleteCallback(function (rs) {
+        if (search.getStatus() == BMAP_STATUS_SUCCESS) {
+          for (j = 0; j < rs.getCurrentNumPois(); j++) {
+            var poi = rs.getPoi(j);
+
+            var row = $("txtResult").insertRow();
+            cell1 = row.insertCell();
+            cell2 = row.insertCell();
+            cell3 = row.insertCell();
+            cell4 = row.insertCell();
+            cell5 = row.insertCell();
+            cell1.innerHTML = String.fromCharCode(no + count);
+            cell2.innerHTML = poi.title;
+            cell3.innerHTML = poi.address;
+            cell4.innerHTML = poi.point.lng + "," + poi.point.lat;
+            cell5.innerHTML = 0;
+            cell4.style.display = 'none';
+            cell5.style.display = 'none';
+            row.ondblclick = copyCoord;
+
+            
+
+            break;
+          }
+        }
+      });
+      search.search(address);
+    }
+
+  </script>
+</body>
+
+</html>
