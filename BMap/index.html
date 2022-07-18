@@ -178,7 +178,7 @@
         <th>编号</th>
         <th>名称</th>
         <th>地址</th>
-        <th style="display:none;">坐标</th>
+        <th>坐标</th>
         <th style="display:none;">显示</th>
       </tr>
     </table>
@@ -336,7 +336,7 @@
             cell3.innerHTML = poi.address;
             cell4.innerHTML = poi.point.lng + "," + poi.point.lat;
             cell5.innerHTML = 0;
-            cell4.style.display = 'none';
+            // cell4.style.display = 'none';
             cell5.style.display = 'none';
             row.ondblclick = copyCoord;
 
