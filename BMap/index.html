@@ -171,7 +171,7 @@
 
     <p>
       <input id="txtCity" type="text" value="常州市" placeholder="城市" size=5 />
-      <input id="txtSearch" type="text" value="省常中" placeholder="地名" size=30 />
+      <input id="txtSearch" type="text" value="锦绣天地" placeholder="地名" size=30 />
       <input type="button" value="搜索" onclick="searchTxt()" /><br><br>
     <table border="1" id="txtResult" class='table-txt'>
       <tr>
@@ -190,12 +190,14 @@
     // 百度地图API功能
     var map = new BMap.Map('divMap');
     // 初始化地点
-    // 南京新街口
+    // 南京-新街口
     // var poi = new BMap.Point(118.79062, 32.047866);
     // 大丰
     // var poi = new BMap.Point(120.468116, 33.206431); 
-    // 常州省常中
+    // 常州-省常中
     var poi = new BMap.Point(119.973553, 31.783225);
+    // 常州-锦绣天地
+    var poi = new BMap.Point(119.976022,31.836817);
 
     var search = new BMap.LocalSearch(map, { renderOptions: { map: map, autoViewport: true, selectFirstResult: true } });
 
